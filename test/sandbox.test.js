@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac,randomBytes} from 'node:crypto';
-Object.assign(process.env,{PAY_MODE:'sandbox',DATABASE_URL:'',LOCAL_DB:':memory:',ADMIN_KEY:randomBytes(32).toString('hex'),DATA_KEY:randomBytes(32).toString('hex'),WEBHOOK_HOSTS:'merchant.example',CRON_SECRET:'test-job',APP_URL:'https://pay.example'});
+Object.assign(process.env,{PAY_MODE:'sandbox',DATABASE_URL:'',LOCAL_DB:':memory:',ADMIN_KEY:'Test masuk toko',DATA_KEY:randomBytes(32).toString('hex'),WEBHOOK_HOSTS:'merchant.example',CRON_SECRET:'test-job',APP_URL:'https://pay.example'});
 delete process.env.VERCEL;delete process.env.RAILWAY_ENVIRONMENT_ID;
 const {default:gateway}=await import('../api/gateway.js');
 async function call(path,{body,headers={},cookie}={}){
@@ -10,6 +10,7 @@ async function call(path,{body,headers={},cookie}={}){
 }
 test('Dashboard, transaksi, checkout, signature webhook, retry, cabut key dan logout',async()=>{
  assert.equal((await call('dashboard')).status,401);
+ assert.equal((await call('login',{body:{key:'salah'}})).status,401);
  const {cookie}=await call('login',{body:{key:process.env.ADMIN_KEY}});assert.ok(cookie);
  const admin=(path,body)=>call(path,{cookie,body});
  const key=(await admin('keys',{name:'Integrasi toko'})).data.secret;
@@ -40,5 +41,7 @@ test('Dashboard, transaksi, checkout, signature webhook, retry, cabut key dan lo
   await admin('keys/revoke',{id:dash.keys[0].id});assert.equal((await call('v1/payments/'+p.id,{headers})).status,401);
   assert.equal((await call('jobs/run',{body:{},headers:{authorization:'Bearer test-job'}})).status,200);
   await admin('logout',{});assert.equal((await admin('dashboard')).status,401);
+  for(let i=0;i<8;i++)assert.equal((await call('login',{body:{key:'salah'}})).status,401);
+  assert.equal((await call('login',{body:{key:'salah'}})).status,429);
  }finally{globalThis.fetch=original;}
 });

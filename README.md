@@ -16,13 +16,13 @@ Buka http://localhost:3000. Masuk dengan ADMIN_KEY dari file .local-secrets.json
 | --- | --- |
 | PAY_MODE | sandbox atau live. Untuk dua mode sekaligus gunakan deployment terpisah dengan database dan secrets masing-masing. |
 | DATABASE_URL | URL PostgreSQL, wajib di Vercel dan Railway. Gunakan database khusus dengan izin membuat tabel. |
-| ADMIN_KEY | Kunci privat untuk masuk ke dashboard (minimal 32 karakter acak). |
+| ADMIN_KEY | Password pilihan sendiri untuk masuk ke dashboard, minimal 12 karakter. Bisa memakai beberapa kata dengan spasi. ADMIN_KEY lama tetap berlaku. |
 | DATA_KEY | 64 digit hex acak. Mengenkripsi sesi provider, tantangan login, dan signing secret menggunakan AES-256-GCM. Pertahankan saat redeploy agar data lama bisa dibaca. |
 | APP_URL | Origin HTTPS deployment, misalnya https://pay.toko.id, agar checkout_url berupa URL absolut. |
 | WEBHOOK_HOSTS | Nama host HTTPS tujuan webhook yang Anda kendalikan, dipisah koma, misalnya api.toko.id. Port standar 443. |
 | CRON_SECRET | Token acak untuk job rekonsiliasi dan pengiriman ulang. |
 
-Buat nilai acak yang berbeda untuk setiap secret:
+Gunakan nilai acak berbeda untuk DATA_KEY dan CRON_SECRET:
 
     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
@@ -82,4 +82,3 @@ Scheduler mengirim POST /api/jobs/run dengan Authorization: Bearer <CRON_SECRET>
 ## Catatan operasional
 
 Dashboard menampilkan 200 transaksi terbaru, total ringkasan atas semua transaksi, dan 50 event pengiriman. Gunakan HTTPS dan simpan backup PostgreSQL serta DATA_KEY secara privat. Jangan aktifkan log body request pada hosting. Kelola sesi dashboard melalui cookie HttpOnly berumur delapan jam. Satu gateway harus menjadi satu-satunya penerbit nominal unik untuk outlet yang terhubung. Untuk membuka pendaftaran merchant pihak ketiga dibutuhkan pengelolaan tenant, identitas, dan onboarding provider tersendiri.
-"# louiv-pay" 

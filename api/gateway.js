@@ -1,5 +1,5 @@
 import {randomBytes,randomUUID} from 'node:crypto';
-import {transaction,mode,equal,digest,bad} from '../lib/db.js';
+import {transaction,mode,equal,digest,bad,setting,save} from '../lib/db.js';
 import {channel,loginStep} from '../lib/channels.js';
 import {createOrder,getOrder,publicOrder,simulate,reconcile} from '../lib/payments.js';
 import {hookInfo,setHook,enqueue,deliver} from '../lib/hooks.js';
@@ -20,7 +20,8 @@ async function run(req,res){
  const url=new URL(req.url,'http://localhost'),path=url.pathname==='/api/gateway'?'/'+(url.searchParams.get('route')||''):url.pathname.replace(/^\/api/,'');
  const post=req.method==='POST';if(!post&&req.method!=='GET')bad(405,'Metode tidak tersedia.');
  if(path==='/mode'&&!post)return {mode};
- if(!/^[a-f0-9]{64}$/i.test(process.env.DATA_KEY||'')||(process.env.ADMIN_KEY||'').length<32)bad(503,'Konfigurasikan DATA_KEY dan ADMIN_KEY.');
+ if(!/^[a-f0-9]{64}$/i.test(process.env.DATA_KEY||''))bad(503,'DATA_KEY harus berisi 64 digit hex.');
+ if((process.env.ADMIN_KEY||'').trim().length<12)bad(503,'Isi ADMIN_KEY dengan password dashboard minimal 12 karakter.');
  if(post&&!req.headers.authorization&&req.headers['x-louiv-client']!=='dashboard')bad(403,'Permintaan tidak diizinkan.');
  const b=post?await json(req):{};
  if(path==='/jobs/run'&&post){
@@ -30,7 +31,15 @@ async function run(req,res){
  }
  const result=await transaction(async q=>{
   if(path==='/login'&&post){
-    if(!equal(String(b.key||''),process.env.ADMIN_KEY))bad(401,'Kunci dashboard salah.');
+    const now=Date.now(), key='dashboard-login-window';
+    const previous=JSON.parse(await setting(q,key)||'null');
+    const window=previous && previous.until>now ? previous : {count:0,until:now+60000};
+    if(window.count>=8)bad(429,'Terlalu banyak percobaan. Tunggu satu menit.');
+    if(!equal(String(b.key||''),process.env.ADMIN_KEY)){
+      window.count++;await save(q,key,JSON.stringify(window));
+      return {invalidPassword:true};
+    }
+    await q('DELETE FROM lp_settings WHERE id=$1',[key]);
     await q('DELETE FROM lp_sessions WHERE expires<$1',[Date.now()]);
     const secret=token();await q('INSERT INTO lp_sessions(token,expires) VALUES($1,$2)',[digest(secret),Date.now()+28800000]);
     res.setHeader('Set-Cookie','lp_session='+secret+cookieAttr()+'; Max-Age=28800');return {ok:true};
@@ -68,6 +77,7 @@ async function run(req,res){
   }
   bad(404,'Rute tidak ditemukan.');
  });
+ if(result?.invalidPassword)bad(401,'Password dashboard salah.');
  if(result?.loginError)bad(400,result.loginError);
  if(post&&['/hooks/test','/hooks/retry','/simulate','/v1/payments'].includes(path))await deliver(1).catch(()=>{});
  return result;
