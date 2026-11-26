@@ -1,0 +1,1 @@
+QrisMerchantID @ git+https://github.com/AlfinAI/QrisMerchantID.git@5bc1d7b4900eb292cf2b4c4b477d2835af7e68f6

@@ -48,7 +48,7 @@ Gunakan nilai acak berbeda untuk DATA_KEY dan CRON_SECRET:
 
 ## API pembayaran
 
-Buat key di menu **API keys**. Nilai lengkap hanya ditampilkan sekali. Simpan pada backend toko. Kunci dapat dicabut dari dashboard. Buat pembayaran dengan POST /api/v1/payments, Content-Type application/json, Authorization Bearer <API_KEY> dan Idempotency-Key (8â€“100 huruf, angka, strip, garis bawah). Kirim JSON:
+Buat key di menu **API keys**. Nilai lengkap hanya ditampilkan sekali. Simpan pada backend toko. Kunci dapat dicabut dari dashboard. Buat pembayaran dengan POST /api/v1/payments, Content-Type application/json, Authorization Bearer <API_KEY> dan Idempotency-Key (8–100 huruf, angka, strip, garis bawah). Kirim JSON:
 
     {"reference":"Pesanan 1001","amount":25000,"channel":"shopee"}
 
@@ -82,3 +82,8 @@ Scheduler mengirim POST /api/jobs/run dengan Authorization: Bearer <CRON_SECRET>
 ## Catatan operasional
 
 Dashboard menampilkan 200 transaksi terbaru, total ringkasan atas semua transaksi, dan 50 event pengiriman. Gunakan HTTPS dan simpan backup PostgreSQL serta DATA_KEY secara privat. Jangan aktifkan log body request pada hosting. Kelola sesi dashboard melalui cookie HttpOnly berumur delapan jam. Satu gateway harus menjadi satu-satunya penerbit nominal unik untuk outlet yang terhubung. Untuk membuka pendaftaran merchant pihak ketiga dibutuhkan pengelolaan tenant, identitas, dan onboarding provider tersendiri.
+
+
+## Login Shopee dengan QrisMerchantID (Railway)
+
+Deploy seluruh proyek termasuk Dockerfile, requirements-shopee.txt dan lib/. Railway membangun Node dan Python dalam satu service. Dockerfile mengaktifkan SHOPEE_LOGIN_DRIVER=python serta menentukan PYTHON_BIN. Permintaan OTP, verifikasi dan login merchant memakai SDK Python AlfinAI, dengan sesi terenkripsi yang dapat dipakai oleh checkout dan rekonsiliasi Node. Mulai proses Hubungkan baru setelah deploy. Untuk kembali memakai driver lama set SHOPEE_LOGIN_DRIVER=merchantid dan redeploy. Vercel menggunakan driver Node bawaan, sebab fungsi Node tidak menyediakan environment Python dari Dockerfile Railway. Uji lokal Python: buat virtualenv, pip install -r requirements-shopee.txt dan set PYTHON_BIN ke executable virtualenv serta SHOPEE_LOGIN_DRIVER=python. Login nyata memerlukan akun merchant, serta HTTPS yang valid. Pengakuan permintaan tidak membuktikan OTP sampai.

@@ -1,0 +1,7 @@
+.git
+.env
+.env.*
+.local-secrets.json
+*.sqlite*
+node_modules
+__pycache__

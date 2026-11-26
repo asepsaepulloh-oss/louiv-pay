@@ -2,5 +2,9 @@
   "deploy": {
     "startCommand": "npm start",
     "healthcheckPath": "/"
+  },
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   }
 }
