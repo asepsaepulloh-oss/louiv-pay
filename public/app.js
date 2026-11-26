@@ -41,16 +41,16 @@ function form(title,fields,submit,fn){
 const input=(label,name,type='text',extra='required')=>'<label>'+label+'<input name="'+name+'" type="'+type+'" '+extra+'></label>';
 function secret(title,value){modal(title,'<p>Salin dan simpan sekarang. Nilai lengkap hanya ditampilkan sekali.</p><pre>'+esc(value)+'</pre>'+button('copy','Salin'));}
 async function done(){if($('dialog').open)$('dialog').close();await load();}
-function connect(name,step='phone',choices=[],delivery='unknown'){
+function connect(name,step='phone',choices=[],delivery='unknown',target={}){
  if(state.mode==='sandbox'){notify('Untuk login merchant asli, ubah PAY_MODE menjadi live di server.');return;}
  let fields;
- if(step==='phone')fields=input('Nomor HP akun merchant','phone','tel')+(name==='shopee'?input('Password Shopee jika akun memerlukannya','password','password','autocomplete="off"'):'');
+ if(step==='phone')fields=input('Nomor HP akun merchant','phone','tel')+(name==='shopee'?'<label>Kirim OTP melalui<select name="otpMethod"><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option><option value="auto">Otomatis dari Shopee</option></select></label>'+input('Password Shopee jika akun memerlukannya','password','password','autocomplete="off"'):'');
  if(step==='otp'){
    const message=delivery==='unconfirmed'?'Shopee menerima permintaan tanpa memberikan tanda pengiriman. Jika kode belum tiba, periksa login lewat aplikasi merchant resmi.':delivery==='acknowledged'?'Shopee mengakui permintaan pengiriman. Masukkan kode jika sudah tiba.':'Permintaan kode sudah diproses. Masukkan kode jika sudah tiba.';
-   fields='<p>'+message+'</p>'+input('Kode OTP','otp','text','required inputmode="numeric" autocomplete="one-time-code"');
+   fields=(target.method?'<p>Metode permintaan: <strong>'+esc(target.method)+'</strong> · Nomor berakhir '+esc(target.lastDigits)+'</p>':'')+'<p>'+message+'</p>'+input('Kode OTP','otp','text','required inputmode="numeric" autocomplete="one-time-code"');
  }
  if(['merchant','store'].includes(step))fields='<label>'+ (step==='store'?'Toko':'Merchant')+'<select name="selection">'+choices.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name||x.id)+'</option>').join('')+'</select></label>'+((name==='shopee'&&step==='store')||(name==='gopay'&&step==='merchant')?'<label>Payload QRIS statis '+(name==='gopay'?'(opsional jika tersedia di outlet)':'untuk toko ini')+'<textarea name="qris" '+(name==='shopee'?'required':'')+'></textarea></label>':'');
- form('Hubungkan '+(name==='gopay'?'GoPay Merchant':'ShopeePay Merchant'),fields,step==='phone'?'Kirim OTP':'Lanjutkan',async b=>{const s=await api('channels/login',{...b,channel:name,step});if(s.step==='done'){await done();notify('Akun merchant terhubung.');}else connect(name,s.step,s.choices,s.delivery);});
+ form('Hubungkan '+(name==='gopay'?'GoPay Merchant':'ShopeePay Merchant'),fields,step==='phone'?'Kirim OTP':'Lanjutkan',async b=>{const s=await api('channels/login',{...b,channel:name,step});if(s.step==='done'){await done();notify('Akun merchant terhubung.');}else connect(name,s.step,s.choices,s.delivery,s);});
 }
 async function action(a,id){
  if(a==='new'){const key=crypto.randomUUID();form('Buat pembayaran',input('Referensi pesanan','reference','text','required maxlength="100"')+input('Nominal (Rp)','amount','number','required min="1000" max="9999000"')+'<label>Kanal<select name="channel"><option value="gopay">GoPay Merchant</option><option value="shopee">ShopeePay Merchant</option></select></label>','Buat tautan',async b=>{const p=await api('v1/payments',{...b,amount:Number(b.amount)},{'Idempotency-Key':key});await load();modal('Tautan pembayaran','<p>'+esc(p.reference)+' · '+rp(p.total)+'</p><pre>'+esc(new URL(p.checkout_url,location.origin).href)+'</pre>'+button('copy','Salin tautan'));});}
